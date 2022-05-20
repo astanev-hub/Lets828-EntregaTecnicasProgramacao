@@ -2,14 +2,17 @@ package com.letscode.modeloentrega.service;
 
 import com.letscode.modeloentrega.domain.Cliente;
 import com.letscode.modeloentrega.repository.ClienteRepository;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestClientException;
 
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.stream.Collector;
 import java.util.stream.Collectors;
 
 @Service
@@ -21,28 +24,27 @@ public class ClienteService implements iClienteService {
     @Override
     public Integer calcularIdadeCliente(Integer codigo) {
 
-        Cliente cliente = clienteRepository.findById(codigo).get();
-
         /*
-            URL: http://localhost:8080/v1/clientes/calcular_idade?codigo=1
+        URL: http://localhost:8080/v1/clientes/calcular_idade?codigo=1
 
-            Construa a lógica de código necessária para responder quantos anos o cliente possui.
+        Construa a lógica de código necessária para responder quantos anos o cliente possui.
 
-            Considere que o código acima já está retornando o cliente correto da base de dados, sendo necessário
-            apenas desenvolver a lógica de cálculo para responder sua idade.
+        Considere que o código acima já está retornando o cliente correto da base de dados, sendo necessário
+        apenas desenvolver a lógica de cálculo para responder sua idade.
 
-            O retorno deste método deverá ser apenas um integer que represente a idade deste cliente.
-         */
+        O retorno deste método deverá ser apenas um integer que represente a idade deste cliente.
+     */
+    	
+    	Cliente cliente = clienteRepository.findById(codigo).get();
+        
+        return (int) ChronoUnit.YEARS.between(cliente.getDataNascimento(), LocalDate.now());
 
-        return 0;
     }
 
     @Override
     public List<String> listarNomesClientes() {
 
-        List<Cliente> listaClientes = clienteRepository.findAll();
-
-        /*
+         /*
             URL: http://localhost:8080/v1/clientes/listar
 
             Refatore o método abaixo para gerar a mesma saída, porém sem o uso de estruturas de repetição (for, while, etc.)
@@ -52,6 +54,7 @@ public class ClienteService implements iClienteService {
             Considere que a consulta acima já retorna uma lista completa com todos os clientes existentes.
          */
 
+       /*
         List<String> listaNomes = new ArrayList<>();
 
         for (int i = 0; i < listaClientes.size(); i++) {
@@ -59,6 +62,12 @@ public class ClienteService implements iClienteService {
         }
 
         return listaNomes;
+        */
+        
+         return clienteRepository.findAll().stream()
+        		 .map(x -> x.getNome().toUpperCase())
+        		 .collect(Collectors.toList());        
+        
     }
 
     @Override
@@ -72,9 +81,20 @@ public class ClienteService implements iClienteService {
             o nome do cliente encontrado. Caso contrário, devolver uma mensagem de erro avisando que não existe ninguém com o código informado.
          */
 
-        Cliente cliente = clienteRepository.findById(codigo).get();
+    	/*
+    	Cliente cliente = clienteRepository.findById(codigo).get();
 
         return cliente.getNome();
+        */
+        
+    	Cliente cliente = clienteRepository.findById(codigo).orElse(null);
+    	
+    	if (cliente == null) {
+    		return "Cliente não encontrado";
+    	} else {
+    		return cliente.getNome();
+    	}
+
     }
 
     @Override
@@ -91,7 +111,12 @@ public class ClienteService implements iClienteService {
                 - quantidade máxima de clientes na lista: 3
          */
 
-        return listaClientes;
+       // return listaClientes;
+        
+        return listaClientes.stream().filter(x -> x.getGenero() == 'F')
+        		.filter(x -> ChronoUnit.YEARS.between(x.getDataNascimento(), LocalDate.now()) >= 30)
+        		.limit(3)
+        		.collect(Collectors.toList());
     }
 
     @Override
@@ -103,14 +128,20 @@ public class ClienteService implements iClienteService {
             Este método deveria listar todos os dados dos clientes ordenados em ordem decrescente pela quantidade de visitas limitados em até 3 resultados,
             porém não é isso que está acontecendo. Verifique se as implementações abaixo estão corretas e, se necessário, faça as modificações que julgar apropriadas.
          */
+    	
+    	List<Cliente> listaClientes = clienteRepository.findAll();
 
-        List<Cliente> listaClientes = clienteRepository.findAll();
-
-        listaClientes.stream().skip(3)
-                .sorted(Comparator.comparingInt(Cliente::getQuantidadeVisistas))
-                .map(x -> { return new Cliente(listaClientes.get(0).getCodigo(), listaClientes.get(0).getNome(), listaClientes.get(0).getDataNascimento(), listaClientes.get(0).getGenero(), listaClientes.get(0).getQuantidadeVisistas()); })
-                .collect(Collectors.toList());
-
-        return listaClientes;
+//        return listaClientes.stream().skip(3)
+//                .sorted(Comparator.comparingInt(Cliente::getQuantidadeVisistas))
+//                .map(x -> { return new Cliente(listaClientes.get(0).getCodigo(), listaClientes.get(0).getNome(), listaClientes.get(0).getDataNascimento(), listaClientes.get(0).getGenero(), listaClientes.get(0).getQuantidadeVisistas()); })
+//                .collect(Collectors.toList());
+//
+//       return listaClientes;
+        
+    	return listaClientes.stream()
+    			.sorted(Comparator.comparingInt(Cliente::getQuantidadeVisistas).reversed())
+    			.limit(3)
+    			.collect(Collectors.toList());
+    	
     }
 }
